@@ -15,6 +15,20 @@ from kokai_dashboard.views import (avanzado, calculo, funciono, mapa, parte2, pl
 st.set_page_config(page_title="Kokai · Menu engineering", layout="wide")
 ui.apply()
 
+
+def _secrets_a_entorno():
+    """Streamlit Cloud guarda los Secrets en st.secrets, pero no siempre los copia a variables de entorno, y el
+    script de Justo y storage.py leen os.environ. Aquí se copian (sin pisar las que ya existan)."""
+    try:
+        for k, v in st.secrets.items():
+            if isinstance(v, (str, int, float)) and k not in os.environ:
+                os.environ[k] = str(v)
+    except Exception:  # en local no hay secrets.toml: se usa el .env como siempre
+        pass
+
+
+_secrets_a_entorno()
+
 ss = st.session_state
 
 # --- Contraseña (solo si existe APP_PASSWORD, ej. en los Secrets del Space; en local no se pide) --------

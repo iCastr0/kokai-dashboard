@@ -20,18 +20,26 @@ from pathlib import Path
 from .config import ROOT
 
 log = logging.getLogger(__name__)
-REPO = os.environ.get("HF_DATA_REPO", "").strip()
-_TOKEN = os.environ.get("HF_TOKEN", "").strip() or None
+
+
+def _repo() -> str:  # se lee al usarse (no al importar): app.py copia los Secrets de Streamlit al entorno
+    return os.environ.get("HF_DATA_REPO", "").strip()
+
+
+def _token() -> str | None:
+    return os.environ.get("HF_TOKEN", "").strip() or None
+
+
 _lock = threading.Lock()
 _status = {"down": None, "errors": []}  # para mostrar en «Avanzado» si algo falló
 
 
 def enabled() -> bool:
-    return bool(REPO)
+    return bool(_repo())
 
 
 def status() -> dict:
-    return dict(_status, repo=REPO)
+    return dict(_status, repo=_repo())
 
 
 def sync_down():
@@ -40,11 +48,11 @@ def sync_down():
         return
     try:
         from huggingface_hub import snapshot_download
-        snapshot_download(REPO, repo_type="dataset", local_dir=ROOT, token=_TOKEN)
+        snapshot_download(_repo(), repo_type="dataset", local_dir=ROOT, token=_token())
         _status["down"] = "ok"
     except Exception as e:  # sin red o sin permiso: la app sigue con lo que haya en disco
         _status["down"] = repr(e)
-        log.exception("No se pudo bajar %s", REPO)
+        log.exception("No se pudo bajar %s", _repo())
 
 
 def push(*paths: Path):
@@ -62,7 +70,7 @@ def _upload(paths: list[Path]):
            for p in paths]
     try:
         with _lock:  # commits en serie: evita conflictos entre subidas simultáneas
-            HfApi(token=_TOKEN).create_commit(REPO, ops, repo_type="dataset",
+            HfApi(token=_token()).create_commit(_repo(), ops, repo_type="dataset",
                                               commit_message=f"dashboard: {', '.join(p.name for p in paths)}")
     except Exception as e:
         _status["errors"].append(f"{', '.join(p.name for p in paths)}: {e!r}")
