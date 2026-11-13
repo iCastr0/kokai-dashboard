@@ -1,0 +1,8 @@
+streamlit>=1.40
+plotly>=5.20
+pandas>=2.2
+numpy
+scipy
+openpyxl
+requests
+huggingface_hub>=0.30

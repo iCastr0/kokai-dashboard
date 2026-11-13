@@ -1,0 +1,5 @@
+__pycache__/
+.env
+04_dashboard/data/
+01_datos_originales/
+03_entregables/
