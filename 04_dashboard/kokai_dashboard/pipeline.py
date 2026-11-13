@@ -37,6 +37,14 @@ def run_update(desde: date, hasta: date, on_progress) -> Path:
         raise UpdateError("No se pudo descargar desde Justo (revisa la conexión o el token)", str(e))
 
     on_progress("Paso 2 de 2 · Cruzando ventas con el costo de receta…", 0.9)
+    if not MAESTRA_PATH.exists():
+        from . import storage
+        st = storage.status()
+        raise UpdateError(
+            "No está la Maestra de costos en el servidor",
+            f"Se esperaba en {MAESTRA_PATH.relative_to(MAESTRA_PATH.parents[1])}. Se baja del dataset de Hugging Face "
+            f"«{st['repo'] or 'HF_DATA_REPO sin configurar'}» al abrir la app. Estado de esa bajada: {st['down']}. "
+            "Revisa HF_DATA_REPO y HF_TOKEN en los Secrets.")
     try:
         dataset, sin_costo, cero, aliased = jvc.build_dataset(ventas, MAESTRA_PATH)
     except Exception as e:

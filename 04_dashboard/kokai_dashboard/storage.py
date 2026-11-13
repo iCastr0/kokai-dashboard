@@ -42,13 +42,21 @@ def status() -> dict:
     return dict(_status, repo=_repo())
 
 
+def needs_sync() -> bool:
+    """True mientras haya repositorio configurado y la bajada no haya salido bien en este proceso."""
+    return enabled() and _status["down"] != "ok"
+
+
 def sync_down():
-    """Baja todo el repositorio de datos sobre ROOT. Se llama una vez por proceso (ver app.py)."""
+    """Baja todo el repositorio de datos sobre ROOT. app.py la llama hasta que salga bien una vez."""
     if not enabled():
         return
     try:
         from huggingface_hub import snapshot_download
-        snapshot_download(_repo(), repo_type="dataset", local_dir=ROOT, token=_token())
+        with _lock:  # dos visitas a la vez no bajan en paralelo
+            if _status["down"] == "ok":
+                return
+            snapshot_download(_repo(), repo_type="dataset", local_dir=ROOT, token=_token())
         _status["down"] = "ok"
     except Exception as e:  # sin red o sin permiso: la app sigue con lo que haya en disco
         _status["down"] = repr(e)

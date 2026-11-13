@@ -44,14 +44,9 @@ if (_pwd := os.environ.get("APP_PASSWORD")) and not ss.get("auth_ok"):
     st.stop()
 
 
-@st.cache_resource(show_spinner="Cargando datos guardados…")
-def _sync_inicial():
-    """Una vez por proceso: baja los datos guardados en la nube (no hace nada sin HF_DATA_REPO)."""
-    storage.sync_down()
-    return True
-
-
-_sync_inicial()
+if storage.needs_sync():  # hasta lograrlo una vez por proceso (los Secrets pueden llegar después del arranque)
+    with st.spinner("Cargando datos guardados…"):
+        storage.sync_down()
 ss.setdefault("params", dict(config.DEFAULT_PARAMS))
 ss.setdefault("update_days", 30)
 ss.setdefault("fc_meta", None if config.FC_META is None else config.FC_META * 100)
